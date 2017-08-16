@@ -26,11 +26,7 @@ import org.xmlpull.v1.XmlPullParserException;
 
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -53,6 +49,8 @@ public class FcmServer implements StanzaListener {
     private boolean mDebuggable = false;
     private String fcmServerUsername = null;
 
+    private NewTaskReplyData newTaskReplyData;
+
     public static FcmServer getInstance() {
         if (sInstance == null) {
             throw new IllegalStateException("You have to prepare the client first");
@@ -74,6 +72,7 @@ public class FcmServer implements StanzaListener {
         mApiKey = apiKey;
         mDebuggable = debuggable;
         fcmServerUsername = projectId + "@" + FCM_SERVER_CONNECTION;
+        newTaskReplyData = new NewTaskReplyData();
     }
 
     private FcmServer() {
@@ -156,9 +155,12 @@ public class FcmServer implements StanzaListener {
             //logger.log(Level.INFO, "Message: " + json);
             if (messageType == null) {
 
+                //todo: if has key (messageType) then send ack
                 String customMessageType = (String) ((JSONObject) (jsonMap.getOrDefault("data", ""))).getOrDefault("messageType", "");
                 if (Objects.equals(customMessageType, "reply-test")) {
                     handleReplyTest(jsonMap);
+                } else if (Objects.equals(customMessageType, "new-task-reply")) {
+                    handleNewTaskReply(jsonMap);
                 } else {
                     UpstreamMessage upstreamMessage = MessageHelper.createUpstreamMessage(jsonMap);
                     handleUpstreamMessage(upstreamMessage); // normal upstream message
@@ -177,7 +179,6 @@ public class FcmServer implements StanzaListener {
         } catch (ParseException e) {
             //logger.log(Level.INFO, "Error parsing JSON: " + json, e.getMessage());
         }
-
     }
 
     /**
@@ -191,9 +192,6 @@ public class FcmServer implements StanzaListener {
 
 
     private void handleReplyTest(Map<String, Object> jsonMap) {
-
-        //TODO READ and WRITE message types
-
         UpstreamMessage upstreamMessage = MessageHelper.createUpstreamMessage(jsonMap);
 
         // Send ACK to FCM
@@ -201,13 +199,8 @@ public class FcmServer implements StanzaListener {
         logger.log(Level.INFO, "Sending reply test ack.");
         send(ack);
 
-        //Increment Message count
-        String count = upstreamMessage.getDataPayload().getOrDefault("count", "-1");
-        int countVal = Integer.parseInt(count) + 1;
-
         // Send a reply downstream message to a device
         Map<String, String> dataPayload = new HashMap<String, String>();
-        dataPayload.put("count", String.valueOf(countVal));
         dataPayload.put("messageType", "reply-test");
         DownstreamMessage message = new DownstreamMessage(upstreamMessage.getFrom(), upstreamMessage.getMessageId(), dataPayload);
 //		message.setTimeToLive(3);
@@ -219,6 +212,45 @@ public class FcmServer implements StanzaListener {
 
         logger.log(Level.INFO, "Sending reply.");
         send(jsonRequest);
+    }
+
+    private void handleNewTaskReply(Map<String, Object> jsonMap) {
+        UpstreamMessage upstreamMessage = MessageHelper.createUpstreamMessage(jsonMap);
+
+        // Send ACK to FCM
+        String ack = MessageHelper.createJsonAck(upstreamMessage.getFrom(), upstreamMessage.getMessageId());
+        logger.log(Level.INFO, "Sending new task reply ack.");
+        send(ack);
+
+        //Store response
+        Integer locationScore = Integer.valueOf(upstreamMessage.getDataPayload().get("locationScore"));
+        String clientId = upstreamMessage.getFrom();
+        newTaskReplyData.addData(clientId, locationScore);
+    }
+
+    public void sendTaskToTopUsers() {
+        sendTaskToTopUsers(10);
+    }
+
+    public void sendTaskToTopUsers(int amount) {
+        List<String> clientList = newTaskReplyData.getTopUsers(amount);
+        // Send a reply downstream message to a device
+        Map<String, String> dataPayload = new HashMap<String, String>();
+        dataPayload.put("messageType", "TOP-NOTCH");
+        Map<String, String> notificationPayload = new HashMap<String, String>();
+        notificationPayload.put("if, ", "I do say so myself. Sir.");
+
+
+        logger.log(Level.INFO, "Sending task to top clients.");
+
+        //Map<String, Object> map = MessageHelper.createAttributeMap(downstreamMessage);
+        for (String clientId : clientList) {
+            DownstreamMessage message = new DownstreamMessage(clientId, getUniqueMessageId(), dataPayload);
+            String jsonRequest = MessageHelper.createJsonDownstreamMessage(message);
+            send(jsonRequest);
+        }
+
+        logger.log(Level.INFO, "Sent task to all top clients.");
     }
 
     /**

@@ -1,6 +1,9 @@
 import FCM.DownstreamMessage;
 import FCM.FcmServer;
 import FCM.MessageHelper;
+
+import com.google.gson.Gson;
+
 import org.jivesoftware.smack.SmackException;
 import org.jivesoftware.smack.XMPPException;
 
@@ -27,15 +30,15 @@ public class Main {
         Map<String, String> dataPayload = new HashMap<String, String>();
         dataPayload.put("count", String.valueOf(1));
         dataPayload.put("messageType", "reply-test");
-        DownstreamMessage message = new DownstreamMessage("/topics/client", messageId, dataPayload);
+        DownstreamMessage message = new DownstreamMessage(VALUES.TOPICS_TEST, messageId, dataPayload);
         message.setTimeToLive(10);
         message.setPriority("high");
         String jsonRequest = MessageHelper.createJsonDownstreamMessage(message);
-		fcmServer.send(jsonRequest);
+		//fcmServer.send(jsonRequest);
 
         DatabaseAdmin databaseAdmin = new DatabaseAdmin();
-        //databaseAdmin.addNewTaskListener();
-        //databaseAdmin.addDummyTask();
+        databaseAdmin.addNewTaskListener();
+        databaseAdmin.addDummyTask();
 
 
 
@@ -56,11 +59,19 @@ public class Main {
         String messageId = FcmServer.getUniqueMessageId();
         Map<String, String> dataPayload = new HashMap<String, String>();
         dataPayload.put("messageType", "new-task");
-        dataPayload.put("task", task.toString());
-        DownstreamMessage message = new DownstreamMessage("/topics/client", messageId, dataPayload);
+        String jsonStringTask = new Gson().toJson(task);
+        dataPayload.put("task", jsonStringTask);
+        DownstreamMessage message = new DownstreamMessage(VALUES.TOPICS_TEST, messageId, dataPayload);
         message.setTimeToLive(10);
         message.setPriority("high");
         String jsonRequest = MessageHelper.createJsonDownstreamMessage(message);
         fcmServer.send(jsonRequest);
+
+        //wait for all replies to come in and be handled
+        try {
+            Thread.sleep(10000);
+        } catch (InterruptedException e) { e.printStackTrace(); }
+
+        fcmServer.sendTaskToTopUsers();
     }
 }

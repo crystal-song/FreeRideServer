@@ -46,8 +46,13 @@ public class DatabaseAdmin {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String prevChildKey) {
                 Task newTask = dataSnapshot.getValue(Task.class);
+                String treatment = dataSnapshot.getRef().getParent().getKey();
                 logger.log(Level.INFO, "New Task Listener: " + newTask.toString());
-
+                if (newTask.getState().equalsIgnoreCase("new")) {
+                    Main.sendTaskToAll(newTask);
+                }
+                //allowing to repeated testing \/ \/ damn italics ruining my arrows c'mon
+                dataSnapshot.getRef().removeValue();
             }
 
             @Override
