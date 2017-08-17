@@ -10,7 +10,7 @@ public class NewTaskReplyData {
     Map<String, Integer> replyData;
 
     public NewTaskReplyData() {
-        replyData = new HashMap<>();//todo error?
+        replyData = new HashMap<>();
     }
 
     public void addData(String userId, Integer userScore) {
@@ -24,7 +24,7 @@ public class NewTaskReplyData {
     //Using Google Guava library to sort map by value and return first N values
     public List<String> getTopUsers(int amount) {
         if (replyData.size() <= amount) {
-            return new ArrayList<>(replyData.keySet()); //todo error?
+            return new ArrayList<>(replyData.keySet());
         }
         //Order on values
         Ordering<String> ordering = Ordering.natural().onResultOf(Functions.forMap(replyData));

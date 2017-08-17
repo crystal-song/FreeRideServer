@@ -146,7 +146,6 @@ public class FcmServer implements StanzaListener {
     @SuppressWarnings("unchecked")
     @Override
     public void processStanza(Stanza packet) {
-        logger.log(Level.INFO, "Received Message.");
         GcmPacketExtension gcmPacket = (GcmPacketExtension) packet.getExtension(FCM_NAMESPACE);
         String json = gcmPacket.getJson();
         try {
@@ -155,6 +154,7 @@ public class FcmServer implements StanzaListener {
             //logger.log(Level.INFO, "Message: " + json);
             if (messageType == null) {
 
+                logger.log(Level.INFO, "Received Custom Message.");
                 //todo: if has key (messageType) then send ack
                 String customMessageType = (String) ((JSONObject) (jsonMap.getOrDefault("data", ""))).getOrDefault("messageType", "");
                 if (Objects.equals(customMessageType, "reply-test")) {
@@ -199,9 +199,13 @@ public class FcmServer implements StanzaListener {
         logger.log(Level.INFO, "Sending reply test ack.");
         send(ack);
 
+        String count = upstreamMessage.getDataPayload().getOrDefault("count", "-1");
+        int countVal = Integer.parseInt(count) + 1;
+
         // Send a reply downstream message to a device
         Map<String, String> dataPayload = new HashMap<String, String>();
         dataPayload.put("messageType", "reply-test");
+        dataPayload.put("count", String.valueOf(countVal));
         DownstreamMessage message = new DownstreamMessage(upstreamMessage.getFrom(), upstreamMessage.getMessageId(), dataPayload);
 //		message.setTimeToLive(3);
 //		message.setDeliveryReceiptRequested(false);
@@ -211,6 +215,18 @@ public class FcmServer implements StanzaListener {
         String jsonRequest = MessageHelper.createJsonDownstreamMessage(message);
 
         logger.log(Level.INFO, "Sending reply.");
+        send(jsonRequest);
+    }
+
+    //Parameter String toId specifies who the message is sent to, can be a topics path or client device ID
+    public void sendTaskData(String jsonStringTask, String toId /*Who this message is sent to*/) {
+        String messageId = getUniqueMessageId();
+        Map<String, String> dataPayload = new HashMap<String, String>();
+        dataPayload.put("messageType", "new-task");
+        dataPayload.put("task", jsonStringTask);
+        DownstreamMessage message = new DownstreamMessage(toId, messageId, dataPayload);
+        message.setTimeToLive(60);
+        String jsonRequest = MessageHelper.createJsonDownstreamMessage(message);
         send(jsonRequest);
     }
 
@@ -228,30 +244,60 @@ public class FcmServer implements StanzaListener {
         newTaskReplyData.addData(clientId, locationScore);
     }
 
-    public void sendTaskToTopUsers() {
-        sendTaskToTopUsers(10);
+    public void sendTaskNotificationToTopUsers(String jsonTaskString, String title) {
+        sendTaskNotificationToTopUsers(10, jsonTaskString, title);
     }
 
-    public void sendTaskToTopUsers(int amount) {
+    public void sendTaskNotificationToTopUsers(int amount, String jsonTaskString, String title) {
         List<String> clientList = newTaskReplyData.getTopUsers(amount);
         // Send a reply downstream message to a device
         Map<String, String> dataPayload = new HashMap<String, String>();
-        dataPayload.put("messageType", "TOP-NOTCH");
+        dataPayload.put("messageType", "new-task-notification");
+        dataPayload.put("taskData", jsonTaskString);
         Map<String, String> notificationPayload = new HashMap<String, String>();
-        notificationPayload.put("if, ", "I do say so myself. Sir.");
-
-
-        logger.log(Level.INFO, "Sending task to top clients.");
+        notificationPayload.put("title", title);
+        notificationPayload.put("body", "New Task");
+        notificationPayload.put("test", "find.me");
 
         //Map<String, Object> map = MessageHelper.createAttributeMap(downstreamMessage);
         for (String clientId : clientList) {
             DownstreamMessage message = new DownstreamMessage(clientId, getUniqueMessageId(), dataPayload);
+            message.setNotificationPayload(notificationPayload);
             String jsonRequest = MessageHelper.createJsonDownstreamMessage(message);
             send(jsonRequest);
         }
 
-        logger.log(Level.INFO, "Sent task to all top clients.");
+        logger.log(Level.INFO, "Sent task to " + clientList.size() + " clients.");
     }
+
+    public void sendTaskNotification(String toId, String jsonTaskString, String title) {
+        // Send a reply downstream message to a device
+        Map<String, String> dataPayload = new HashMap<String, String>();
+        dataPayload.put("messageType", "new-task-notification");
+        dataPayload.put("taskData", jsonTaskString);
+        Map<String, String> notificationPayload = new HashMap<String, String>();
+        notificationPayload.put("title", title);
+        notificationPayload.put("body", "New Task");
+        notificationPayload.put("test", "find.me");
+
+        //Map<String, Object> map = MessageHelper.createAttributeMap(downstreamMessage);
+        DownstreamMessage message = new DownstreamMessage(toId, getUniqueMessageId(), null);
+        message.setNotificationPayload(notificationPayload);
+        String jsonRequest = MessageHelper.createJsonDownstreamMessage(message);
+        send(jsonRequest);
+
+        logger.log(Level.INFO, "Sent task notification.");
+    }
+
+
+    public void sendPingHack(String toId) {
+        String messageId = getUniqueMessageId();
+        DownstreamMessage message = new DownstreamMessage(toId, messageId, null);
+        message.setTimeToLive(10);
+        String jsonRequest = MessageHelper.createJsonDownstreamMessage(message);
+        send(jsonRequest);
+    }
+
 
     /**
      * Handles a NACK message from FCM
@@ -304,7 +350,6 @@ public class FcmServer implements StanzaListener {
      * Returns a random message id to uniquely identify a message
      */
     public static String getUniqueMessageId() {
-        // TODO: where is this used
         return "msgId_" + UUID.randomUUID().toString();
     }
 

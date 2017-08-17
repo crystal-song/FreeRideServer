@@ -31,7 +31,7 @@ public class DownstreamMessage {
         this.to = to;
         this.messageId = messageId;
         this.dataPayload = dataPayload;
-        this.priority = "high";
+        //this.priority = "high";
     }
 
     public String getTo() {

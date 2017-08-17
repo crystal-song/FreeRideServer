@@ -3,11 +3,7 @@ import FCM.FcmServer;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.auth.FirebaseCredentials;
-import com.google.firebase.database.ChildEventListener;
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
-import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.*;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -49,7 +45,7 @@ public class DatabaseAdmin {
                 String treatment = dataSnapshot.getRef().getParent().getKey();
                 logger.log(Level.INFO, "New Task Listener: " + newTask.toString());
                 if (newTask.getState().equalsIgnoreCase("new")) {
-                    Main.sendTaskToAll(newTask);
+                    Main.sendTaskUseDatabase(newTask);
                 }
                 //allowing to repeated testing \/ \/ damn italics ruining my arrows c'mon
                 dataSnapshot.getRef().removeValue();
@@ -83,5 +79,25 @@ public class DatabaseAdmin {
         Task dummyTask = new Task(50.1341, -1.4082, 50.0832, -1.4028, LocalDateTime.now().toString(), null,
                 "Title Dummy", "Description of dummy task. It's tree fiddy on completion.", "NEW", null, 3.50);
         newTaskRef.setValue(dummyTask);
+    }
+
+    public void getMessages() {
+        DatabaseReference messagesRef = FirebaseDatabase.getInstance().getReference(VALUES.DB_MESSAGES_PATH);
+        messagesRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                for (DataSnapshot data : dataSnapshot.getChildren()) {
+                    logger.log(Level.INFO, "Message: " + data.toString());
+                }
+
+                //removing message
+                dataSnapshot.getRef().removeValue();
+                Main.callDatabase();
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+        });
     }
 }
