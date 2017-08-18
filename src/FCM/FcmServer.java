@@ -219,11 +219,12 @@ public class FcmServer implements StanzaListener {
     }
 
     //Parameter String toId specifies who the message is sent to, can be a topics path or client device ID
-    public void sendTaskData(String jsonStringTask, String toId /*Who this message is sent to*/) {
+    public void sendTaskData(String jsonStringTask, String taskId, String toId) {
         String messageId = getUniqueMessageId();
         Map<String, String> dataPayload = new HashMap<String, String>();
         dataPayload.put("messageType", "new-task");
         dataPayload.put("task", jsonStringTask);
+        dataPayload.put("taskId", taskId);
         DownstreamMessage message = new DownstreamMessage(toId, messageId, dataPayload);
         message.setTimeToLive(60);
         String jsonRequest = MessageHelper.createJsonDownstreamMessage(message);
@@ -245,7 +246,7 @@ public class FcmServer implements StanzaListener {
     }
 
     public void sendTaskNotificationToTopUsers(String jsonTaskString, String title) {
-        sendTaskNotificationToTopUsers(10, jsonTaskString, title);
+        //sendTaskNotification(10, jsonTaskString, title);
     }
 
     public void sendTaskNotificationToTopUsers(int amount, String jsonTaskString, String title) {
@@ -270,18 +271,29 @@ public class FcmServer implements StanzaListener {
         logger.log(Level.INFO, "Sent task to " + clientList.size() + " clients.");
     }
 
-    public void sendTaskNotification(String toId, String jsonTaskString, String title) {
+    public void sendTaskIdForNotification(String taskId, String toId) {
+        String messageId = getUniqueMessageId();
+        Map<String, String> dataPayload = new HashMap<String, String>();
+        dataPayload.put("messageType", "task-for-notification");
+        dataPayload.put("taskId", taskId);
+        DownstreamMessage message = new DownstreamMessage(toId, messageId, dataPayload);
+        message.setTimeToLive(60);
+        String jsonRequest = MessageHelper.createJsonDownstreamMessage(message);
+        send(jsonRequest);
+    }
+
+    public void sendTaskNotification(String taskId, String toId, String jsonTaskString, String title) {
         // Send a reply downstream message to a device
         Map<String, String> dataPayload = new HashMap<String, String>();
         dataPayload.put("messageType", "new-task-notification");
         dataPayload.put("taskData", jsonTaskString);
+        dataPayload.put("taskId", taskId);
         Map<String, String> notificationPayload = new HashMap<String, String>();
         notificationPayload.put("title", title);
         notificationPayload.put("body", "New Task");
-        notificationPayload.put("test", "find.me");
 
         //Map<String, Object> map = MessageHelper.createAttributeMap(downstreamMessage);
-        DownstreamMessage message = new DownstreamMessage(toId, getUniqueMessageId(), null);
+        DownstreamMessage message = new DownstreamMessage(toId, getUniqueMessageId(), dataPayload);
         message.setNotificationPayload(notificationPayload);
         String jsonRequest = MessageHelper.createJsonDownstreamMessage(message);
         send(jsonRequest);
