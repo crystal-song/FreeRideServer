@@ -35,7 +35,6 @@ import java.util.logging.Logger;
 public class FcmServer implements StanzaListener {
 
     private static final Logger logger = Logger.getLogger(FcmServer.class.getName());
-    //private static final String TAG = FCM.FcmServer.class.getSimpleName();
 
     private static final String FCM_SERVER = "fcm-xmpp.googleapis.com";
     private static final int FCM_PORT = 5236;
@@ -151,18 +150,18 @@ public class FcmServer implements StanzaListener {
         try {
             Map<String, Object> jsonMap = (Map<String, Object>) JSONValue.parseWithException(json);
             Object messageType = jsonMap.get("message_type");
-            //logger.log(Level.INFO, "Message: " + json);
             if (messageType == null) {
+                UpstreamMessage upstreamMessage = MessageHelper.createUpstreamMessage(jsonMap);
 
-                logger.log(Level.INFO, "Received Custom Message.");
-                //todo: if has key (messageType) then send ack
-                String customMessageType = (String) ((JSONObject) (jsonMap.getOrDefault("data", ""))).getOrDefault("messageType", "");
+                String customMessageType = String.valueOf(
+                        ((JSONObject) (jsonMap.getOrDefault("data", ""))).getOrDefault("messageType", ""));
+
                 if (Objects.equals(customMessageType, "reply-test")) {
-                    handleReplyTest(jsonMap);
+                    handleReplyTest(upstreamMessage);
                 } else if (Objects.equals(customMessageType, "new-task-reply")) {
-                    handleNewTaskReply(jsonMap);
+                    handleNewTaskReply(upstreamMessage);
                 } else {
-                    UpstreamMessage upstreamMessage = MessageHelper.createUpstreamMessage(jsonMap);
+
                     handleUpstreamMessage(upstreamMessage); // normal upstream message
                 }
             } else {
@@ -177,12 +176,14 @@ public class FcmServer implements StanzaListener {
                 }
             }
         } catch (ParseException e) {
-            //logger.log(Level.INFO, "Error parsing JSON: " + json, e.getMessage());
+            logger.log(Level.INFO, "Error parsing JSON: " + json, e.getMessage());
         }
     }
 
     /**
-     * Handles an upstream message from a device client through FCM
+     * Handles (unknown message type) upstream message from a device client through FCM
+     * Sends ack back to FCM
+     * @param upstreamMessage received
      */
     private void handleUpstreamMessage(UpstreamMessage upstreamMessage) {
         String ack = MessageHelper.createJsonAck(upstreamMessage.getFrom(), upstreamMessage.getMessageId());
@@ -191,8 +192,14 @@ public class FcmServer implements StanzaListener {
     }
 
 
-    private void handleReplyTest(Map<String, Object> jsonMap) {
-        UpstreamMessage upstreamMessage = MessageHelper.createUpstreamMessage(jsonMap);
+    /**
+     * Server and client sending message back and forth, incrementing a counter.
+     * Used to test connectivity between server and client, see where messaging breaks
+     * and see how long messages take to get sent.
+     * The client end sets a limit to the counter value.
+     * @param upstreamMessage received message
+     */
+    private void handleReplyTest(UpstreamMessage upstreamMessage) {
 
         // Send ACK to FCM
         String ack = MessageHelper.createJsonAck(upstreamMessage.getFrom(), upstreamMessage.getMessageId());
@@ -207,11 +214,6 @@ public class FcmServer implements StanzaListener {
         dataPayload.put("messageType", "reply-test");
         dataPayload.put("count", String.valueOf(countVal));
         DownstreamMessage message = new DownstreamMessage(upstreamMessage.getFrom(), upstreamMessage.getMessageId(), dataPayload);
-//		message.setTimeToLive(3);
-//		message.setDeliveryReceiptRequested(false);
-//		message.setContentAvailable(true);
-//		message.setNotificationPayload(null);
-
         String jsonRequest = MessageHelper.createJsonDownstreamMessage(message);
 
         logger.log(Level.INFO, "Sending reply.");
@@ -219,6 +221,14 @@ public class FcmServer implements StanzaListener {
     }
 
     //Parameter String toId specifies who the message is sent to, can be a topics path or client device ID
+
+    /**
+     * Sends task data as a JSON string to client or topic.
+     * task data is added to data payload of outgoing message.
+     * @param jsonStringTask task data
+     * @param taskId of task
+     * @param toId client token or topic name
+     */
     public void sendTaskData(String jsonStringTask, String taskId, String toId) {
         String messageId = getUniqueMessageId();
         Map<String, String> dataPayload = new HashMap<String, String>();
@@ -231,9 +241,12 @@ public class FcmServer implements StanzaListener {
         send(jsonRequest);
     }
 
-    private void handleNewTaskReply(Map<String, Object> jsonMap) {
-        UpstreamMessage upstreamMessage = MessageHelper.createUpstreamMessage(jsonMap);
-
+    /**
+     * DEPRECATED - Not used anymore because of unreliable upstream messaging (from client)
+     * Will be useful again if upstream messaging becomes reliable
+     * @param upstreamMessage received message
+     */
+    private void handleNewTaskReply(UpstreamMessage upstreamMessage) {
         // Send ACK to FCM
         String ack = MessageHelper.createJsonAck(upstreamMessage.getFrom(), upstreamMessage.getMessageId());
         logger.log(Level.INFO, "Sending new task reply ack.");
@@ -245,10 +258,21 @@ public class FcmServer implements StanzaListener {
         newTaskReplyData.addData(clientId, locationScore);
     }
 
+    /**
+     * Not used anymore
+     * @param jsonTaskString task data
+     * @param title of task
+     */
     public void sendTaskNotificationToTopUsers(String jsonTaskString, String title) {
-        //sendTaskNotification(10, jsonTaskString, title);
+        //sendTaskNotificationToTopUsers(10, jsonTaskString, title);
     }
 
+    /**
+     * Not used anymore
+     * @param amount of users to send notification to
+     * @param jsonTaskString task data
+     * @param title of task
+     */
     public void sendTaskNotificationToTopUsers(int amount, String jsonTaskString, String title) {
         List<String> clientList = newTaskReplyData.getTopUsers(amount);
         // Send a reply downstream message to a device
@@ -271,6 +295,12 @@ public class FcmServer implements StanzaListener {
         logger.log(Level.INFO, "Sent task to " + clientList.size() + " clients.");
     }
 
+    /**
+     * Sends taskId to client device. Client device will have to retrieve task data
+     * from the database and display a notification for the user.
+     * @param taskId of task
+     * @param toId users token (or topic)
+     */
     public void sendTaskIdForNotification(String taskId, String toId) {
         String messageId = getUniqueMessageId();
         Map<String, String> dataPayload = new HashMap<String, String>();
@@ -282,6 +312,13 @@ public class FcmServer implements StanzaListener {
         send(jsonRequest);
     }
 
+    /**
+     * Sends task data and notification payload to client, to display a notification for the user.
+     * @param taskId of task
+     * @param toId users token or topic
+     * @param jsonTaskString task data
+     * @param title of task
+     */
     public void sendTaskNotification(String taskId, String toId, String jsonTaskString, String title) {
         // Send a reply downstream message to a device
         Map<String, String> dataPayload = new HashMap<String, String>();
@@ -300,16 +337,6 @@ public class FcmServer implements StanzaListener {
 
         logger.log(Level.INFO, "Sent task notification.");
     }
-
-
-    public void sendPingHack(String toId) {
-        String messageId = getUniqueMessageId();
-        DownstreamMessage message = new DownstreamMessage(toId, messageId, null);
-        message.setTimeToLive(10);
-        String jsonRequest = MessageHelper.createJsonDownstreamMessage(message);
-        send(jsonRequest);
-    }
-
 
     /**
      * Handles a NACK message from FCM
@@ -346,7 +373,11 @@ public class FcmServer implements StanzaListener {
         }
     }
 
-
+    /**
+     * Send given downstream message to a list of users
+     * @param downstreamMessage pre-made message
+     * @param recipients list of user tokens
+     */
     public void sendMessageToRecipientList(DownstreamMessage downstreamMessage, List<String> recipients) {
         Map<String, Object> map = MessageHelper.createAttributeMap(downstreamMessage);
         for (String toRegId : recipients) {

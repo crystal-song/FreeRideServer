@@ -1,9 +1,7 @@
 import FCM.DownstreamMessage;
 import FCM.FcmServer;
 import FCM.MessageHelper;
-
 import com.google.gson.Gson;
-
 import org.jivesoftware.smack.SmackException;
 import org.jivesoftware.smack.XMPPException;
 
@@ -11,9 +9,11 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 
+/**
+ * This class acts as the CONTROLLER / Middle-man of other classes.
+ */
 public class Main {
     private static FcmServer fcmServer;
     private static DatabaseAdmin databaseAdmin;
@@ -47,8 +47,7 @@ public class Main {
         }
     }
 
-    public static void sendTaskUseDatabase(Task task, String taskId) {
-        String jsonStringTask = new Gson().toJson(task);
+    public static void sendTaskDataToAll(String jsonStringTask, String taskId) {
         fcmServer.sendTaskData(jsonStringTask, taskId, VALUES.TOPICS_TEST);
     }
 
@@ -61,19 +60,23 @@ public class Main {
     public static void databaseOperations() {
         databaseAdmin = new DatabaseAdmin();
         databaseAdmin.addNewTaskListener();
-        String taskId = databaseAdmin.addDummyTask();
+        String taskId = databaseAdmin.addNewRandomTask();
+        //DB Listener calls Main.sendTaskDataToAll
         System.out.println("Task Id: " + taskId);
         try {Thread.sleep(10000);} catch (InterruptedException e) {e.printStackTrace();}
 
-        databaseAdmin.getMessagesForAllTasks();
+        databaseAdmin.getMessagesForTask(taskId);
 
+        try {Thread.sleep(10000);} catch (InterruptedException e) {e.printStackTrace();}
+
+        databaseAdmin.makeTaskAvailableIfNotTaken(taskId);
     }
 
     public static void callDatabaseTest() {
         if (count < 10) {
-            databaseAdmin.addDummyTask();
-            //try {Thread.sleep(1000);} catch (InterruptedException e) {e.printStackTrace();}
-            databaseAdmin.getMessagesForAllTasks();
+            String taskId = databaseAdmin.addNewRandomTask();
+            try {Thread.sleep(1000);} catch (InterruptedException e) {e.printStackTrace();}
+            databaseAdmin.getMessagesForTask(taskId);
             count++;
         }
 
@@ -103,7 +106,7 @@ public class Main {
         Going to send task notification to all users instead.
 
 
-        fcmServer.sendTaskData(jsonStringTask, taskId, VALUES.TOPICS_TEST);
+        fcmServer.sendTaskDataToAll(jsonStringTask, taskId, VALUES.TOPICS_TEST);
 
 
         //wait for all replies to come in and be handled
@@ -125,11 +128,15 @@ public class Main {
 
 
         //try {Thread.sleep(10000);} catch (InterruptedException e) { e.printStackTrace(); }
-
-        //TODO if task not accepted by anyone, send to more users / move in DB
     }
 
-    public static String getRandomTaskId() {
-        return "taskId_" + UUID.randomUUID().toString();
+    public static void addTaskToDatabase(Task task) {
+        databaseAdmin.addTaskToDatabase(task);
     }
+
+    public static void addTaskToDatabase(String jsonTaskString) {
+        databaseAdmin.addTaskToDatabase(jsonTaskString);
+    }
+
+
 }
