@@ -83,7 +83,6 @@ public class DatabaseAdmin {
      * @return taskId of newly added task
      */
     public String addNewRandomTask() {
-        logger.log(Level.INFO, "Adding dummy task to DB");
         String taskId = addTaskToDatabase(NewTask.generateRandomTask());
         return taskId;
     }

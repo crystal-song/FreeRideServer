@@ -342,7 +342,7 @@ public class FcmServer implements StanzaListener {
      * Handles a NACK message from FCM
      */
     private void handleNackReceipt(Map<String, Object> jsonMap) {
-        String errorCode = (String) jsonMap.get("error");
+        String errorCode = String.valueOf(jsonMap.get("error"));
         if (errorCode != null) {
             logger.log(Level.INFO, "Received NACK FCM Error Code: " + errorCode + ",  Message: " + jsonMap);
         }
@@ -354,7 +354,7 @@ public class FcmServer implements StanzaListener {
      * Handles a Control message from FCM
      */
     private void handleControlMessage(Map<String, Object> jsonMap) {
-        String controlType = (String) jsonMap.get("control_type");
+        String controlType = String.valueOf(jsonMap.get("control_type"));
         if (controlType != null) {
             logger.log(Level.INFO, "Received FCM Control Message: " + controlType + ",  Message: " + jsonMap);
         }

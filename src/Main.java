@@ -35,7 +35,7 @@ public class Main {
 
         databaseOperations();
 
-
+        NewTask.CLI();
 
 
 
@@ -138,5 +138,7 @@ public class Main {
         databaseAdmin.addTaskToDatabase(jsonTaskString);
     }
 
-
 }
+
+//JVM argument for 'customised' one line log messages:
+//-Djava.util.logging.SimpleFormatter.format="%1$tH:%1$tM:%1$tS  %5$s%6$s [in %2$s]%n"
