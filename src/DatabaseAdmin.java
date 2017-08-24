@@ -58,7 +58,9 @@ public class DatabaseAdmin {
                 String state = String.valueOf(dataSnapshot.child("state").getValue());
                 String treatment = dataSnapshot.getRef().getParent().getKey();
                 if (state.equalsIgnoreCase("new")) {
-                    Main.sendTaskDataToAll(jsonTaskString, taskId);
+                    //TODO only for newly created tasks?
+                    //restarting server resends all tasks
+                    //Main.sendTaskDataToAll(jsonTaskString, taskId);
                 }
                 //to remove task from db:
                 //dataSnapshot.getRef().removeValue();

@@ -34,6 +34,7 @@ public class Main {
 
 
         databaseOperations();
+//        databaseAddAndManageNewTask();
 
         NewTask.CLI();
 
@@ -60,6 +61,9 @@ public class Main {
     public static void databaseOperations() {
         databaseAdmin = new DatabaseAdmin();
         databaseAdmin.addNewTaskListener();
+    }
+
+    public static void databaseAddAndManageNewTask(){
         String taskId = databaseAdmin.addNewRandomTask();
         //DB Listener calls Main.sendTaskDataToAll
         System.out.println("Task Id: " + taskId);
@@ -132,6 +136,11 @@ public class Main {
 
     public static void addTaskToDatabase(Task task) {
         databaseAdmin.addTaskToDatabase(task);
+    }
+    public static void addTasksArrayToDatabase(ArrayList<Task> taskArray) {
+        for (Task task :taskArray) {
+            databaseAdmin.addTaskToDatabase(task);
+        }
     }
 
     public static void addTaskToDatabase(String jsonTaskString) {

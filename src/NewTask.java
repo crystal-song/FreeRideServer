@@ -75,33 +75,55 @@ public class NewTask {
     public static void CLI() {
         //If no file given as argument to read, print out task format
         logger.log(Level.INFO, "RUNNING NEW TASK.");
-        Scanner scanner = new Scanner(System.in);
-        String userInput = scanner.nextLine();
-        String[] userInputTokens = userInput.split(" ");
 
-        logger.log(Level.INFO, "[" + userInput + "]");
-        switch (userInputTokens[0]) {
-            case "":
-                Task dummyTask = new Task(50.1341, -1.4082, 50.0832, -1.4028,
-                        LocalDateTime.now().toString(), null, "Title Dummy",
-                        "Description of dummy task. It's tree fiddy on completion.", "new", null, 3.50);
-                String taskJson = new Gson().toJson(dummyTask);
-                logger.log(Level.INFO, "Task Format: ");
-                logger.log(Level.INFO, taskJson);
-                break;
-            case "create":
-                switch (userInputTokens[1]) {
-                    case "available":
-                        Main.addTaskToDatabase(generateRandomTask("available"));
-                        break;
-                    default:
-                        Main.addTaskToDatabase(generateRandomTask());
-                }
-                break;
-            default:
-                break;
+        System.out.println("New task command line interface. Type 'exit' to quit");
+        System.out.println("or 'create' to generate tasks and add them to the database.");
+        Scanner scanner = new Scanner(System.in);
+//        System.out.print(">");
+        String userInput = scanner.nextLine();
+
+        while (!userInput.equalsIgnoreCase("exit")) {
+            switch (userInput) {
+                case "":
+                    System.out.println("Type 'exit' to quit.");
+                    break;
+                case "create":
+                    System.out.println("How many tasks to create? Enter '0' to cancel.");
+//                    System.out.print(">");
+                    String amountString = scanner.nextLine();
+                    Integer amount = Integer.parseInt(amountString);
+                    if (amount > 0) {
+                        System.out.println("Choose tasks state? ('new' or 'available') Enter \"\" to cancel.");
+//                        System.out.print(">");
+                        String state = scanner.nextLine();
+                        if (state.equals("new") || state.equals("available")) {
+                            Main.addTasksArrayToDatabase(generateRandomTasks(amount, state));
+                            System.out.println("Added " + amount + " " + state + " tasks to database.");
+                        } else {
+                            System.out.println(state + " not a valid task state. \uD83D\uDC80 ");
+                        }
+                    }
+                    break;
+                case "info":
+                    System.out.println("Explaining things. Look unicode: ☠");
+                default:
+                    break;
+            }
+            System.out.println("New task command line interface. Type 'exit' to quit");
+            System.out.println("or 'create' to generate tasks and add them to the database.");
+//            System.out.print(">");
+            userInput = scanner.nextLine();
         }
-//
+
+
+
+//        Task dummyTask = new Task(50.1341, -1.4082, 50.0832, -1.4028,
+//                LocalDateTime.now().toString(), null, "Title Dummy",
+//                "Description of dummy task. It's tree fiddy on completion.", "new", null, 3.50);
+//        String taskJson = new Gson().toJson(dummyTask);
+//        System.out.println("Task Format: ");
+//        System.out.println(taskJson);
+
 //        logger.log(Level.INFO, "Reading tasks from file: " + userInput);
 //        File inputFile = null;
 //        BufferedReader reader = null;
@@ -143,17 +165,17 @@ public class NewTask {
         logger.log(Level.INFO, "Generating Random Task");
 
         Task newTask = new Task(
-                gaussianRandom(50, 1),
-                gaussianRandom(-1.4, 1),
-                gaussianRandom(50, 1),
-                gaussianRandom(-1.4, 1),
+                gaussianRandom(51, 1, true),
+                gaussianRandom(-1, 1, false),
+                gaussianRandom(51, 1, true),
+                gaussianRandom(-1, 1, false),
                 LocalDateTime.now().toString(),
                 null,
                 "Generated",
                 "Randomly generated task values.",
                 state,
                 null,
-                gaussianRandom(10, 2.3));
+                gaussianRandom(10, 2.3, false));
         return newTask;
     }
 
@@ -194,8 +216,12 @@ public class NewTask {
         return tasks;
     }
 
-    private static double gaussianRandom(double mean, double variance){
-        double result = mean + new Random().nextGaussian() * variance;
+    private static double gaussianRandom(double mean, double variance, boolean oneDirection){ //well that variable name will have to be changed
+        double diffFromMean = new Random().nextGaussian() * variance;
+        if (oneDirection) {
+            diffFromMean = Math.abs(diffFromMean);
+        }
+        double result = mean + diffFromMean;
         BigDecimal bd = new BigDecimal(result);
         bd = bd.setScale(5, RoundingMode.HALF_UP);
         return bd.doubleValue();
