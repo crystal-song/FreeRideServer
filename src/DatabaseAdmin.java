@@ -14,7 +14,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -83,31 +82,6 @@ public class DatabaseAdmin {
                 logger.log(Level.INFO, "DB Error: " + databaseError);
             }
         });
-    }
-
-    /**
-     * Adds a randomly generated task (number values only random) to the database.
-     * @return taskId of newly added task
-     */
-    public String addNewRandomTask() {
-        return addTaskToDatabase(NewTask.generateRandomTask());
-    }
-
-    /**
-     * Adds task object to the database under a unique generated key. This key is created by the
-     * database. This key is then set as the taskId of the object before committing it to the
-     * database.
-     * @param newTask object
-     * @return taskId as String (Used to receive users reply messages for this task)
-     */
-    public String addTaskToDatabase(Task newTask) {
-        logger.log(Level.INFO, "Adding task object to DB");
-        //Generates a unique key to store the task under (becomes the taskId)
-        DatabaseReference newTaskRef = allTasksRef.push();
-        String taskId = newTaskRef.getKey();
-        newTask.setTaskId(taskId);
-        newTaskRef.setValue(newTask);
-        return taskId;
     }
 
     /**
@@ -188,7 +162,6 @@ public class DatabaseAdmin {
 
         //removing messages for all tasks
         //messagesRef.removeValue();
-        //Main.callDatabaseTest();
     }
 
     /**
@@ -268,9 +241,5 @@ public class DatabaseAdmin {
     private void removeAllUserTaskInfoMessages() {
         logger.log(Level.INFO, "Removing All User Task Info messages");
         allMessagesRef.removeValue();
-    }
-
-    private static String getRandomTaskId() {
-        return "taskId_" + UUID.randomUUID().toString();
     }
 }
