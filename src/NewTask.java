@@ -1,4 +1,3 @@
-import FCM.FcmServer;
 import com.google.gson.Gson;
 
 import java.io.BufferedReader;
@@ -15,7 +14,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class NewTask {
-    private static final Logger logger = Logger.getLogger(FcmServer.class.getName());
+    private static final Logger logger = Logger.getLogger(NewTask.class.getName());
 
     /**
      * Reads task data from file, add these tasks to database
@@ -52,7 +51,6 @@ public class NewTask {
                 logger.log(Level.INFO, "reading line: " + line);
                 Task newTask = gson.fromJson(line, Task.class);
                 Main.addTaskToDatabase(newTask);
-                Main.addTaskToDatabase(line);
             }
 
 
@@ -165,17 +163,17 @@ public class NewTask {
         logger.log(Level.INFO, "Generating Random Task");
 
         Task newTask = new Task(
-                gaussianRandom(51, 1, true),
-                gaussianRandom(-1, 1, false),
-                gaussianRandom(51, 1, true),
-                gaussianRandom(-1, 1, false),
+                gaussianRandom(51, 1, true, 5),
+                gaussianRandom(-1, 1, false, 5),
+                gaussianRandom(51, 1, true, 5),
+                gaussianRandom(-1, 1, false, 5),
                 LocalDateTime.now().toString(),
                 null,
                 "Generated",
                 "Randomly generated task values.",
                 state,
                 null,
-                gaussianRandom(10, 2.3, false));
+                gaussianRandomInt(0, 1000));
         return newTask;
     }
 
@@ -216,14 +214,18 @@ public class NewTask {
         return tasks;
     }
 
-    private static double gaussianRandom(double mean, double variance, boolean oneDirection){ //well that variable name will have to be changed
+    private static int gaussianRandomInt(int mean, int variance) {
+        return mean + (int) Math.abs((new Random().nextGaussian() * variance));
+    }
+
+    private static double gaussianRandom(double mean, double variance, boolean oneDirection, int decimalPlaces){ //well that variable name will have to be changed
         double diffFromMean = new Random().nextGaussian() * variance;
         if (oneDirection) {
             diffFromMean = Math.abs(diffFromMean);
         }
         double result = mean + diffFromMean;
         BigDecimal bd = new BigDecimal(result);
-        bd = bd.setScale(5, RoundingMode.HALF_UP);
+        bd = bd.setScale(decimalPlaces, RoundingMode.HALF_UP);
         return bd.doubleValue();
     }
 }

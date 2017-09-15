@@ -1,10 +1,11 @@
 
 public class Task {
 
-    private double startLocationLatitude;
-    private double startLocationLongitude;
-    private double endLocationLatitude;
-    private double endLocationLongitude;
+    private String taskId;
+    private double startLat;
+    private double startLong;
+    private double endLat;
+    private double endLong;
     private String creationLocalDateTime;
     private String expirationLocalDateTime;
     private String title;
@@ -13,14 +14,14 @@ public class Task {
     private String user;
     private double incentive;
 
-    public Task(double startLocationLatitude, double startLocationLongitude,
-                double endLocationLatitude, double endLocationLongitude,
+    public Task(double startLat, double startLong,
+                double endLat, double endLong,
                 String creationLocalDateTime, String expirationLocalDateTime,
                 String title, String description, String state, String user, double incentive) {
-        this.startLocationLatitude = startLocationLatitude;
-        this.startLocationLongitude = startLocationLongitude;
-        this.endLocationLatitude = endLocationLatitude;
-        this.endLocationLongitude = endLocationLongitude;
+        this.startLat = startLat;
+        this.startLong = startLong;
+        this.endLat = endLat;
+        this.endLong = endLong;
         this.creationLocalDateTime = creationLocalDateTime;
         this.expirationLocalDateTime = expirationLocalDateTime;
         this.title = title;
@@ -34,36 +35,44 @@ public class Task {
 
     }
 
-    public double getStartLocationLatitude() {
-        return startLocationLatitude;
+    public String getTaskId() {
+        return taskId;
     }
 
-    public void setStartLocationLatitude(double startLocationLatitude) {
-        this.startLocationLatitude = startLocationLatitude;
+    public void setTaskId(String taskId) {
+        this.taskId = taskId;
     }
 
-    public double getStartLocationLongitude() {
-        return startLocationLongitude;
+    public double getStartLat() {
+        return startLat;
     }
 
-    public void setStartLocationLongitude(double startLocationLongitude) {
-        this.startLocationLongitude = startLocationLongitude;
+    public void setStartLat(double startLat) {
+        this.startLat = startLat;
     }
 
-    public double getEndLocationLatitude() {
-        return endLocationLatitude;
+    public double getStartLong() {
+        return startLong;
     }
 
-    public void setEndLocationLatitude(double endLocationLatitude) {
-        this.endLocationLatitude = endLocationLatitude;
+    public void setStartLong(double startLong) {
+        this.startLong = startLong;
     }
 
-    public double getEndLocationLongitude() {
-        return endLocationLongitude;
+    public double getEndLat() {
+        return endLat;
     }
 
-    public void setEndLocationLongitude(double endLocationLongitude) {
-        this.endLocationLongitude = endLocationLongitude;
+    public void setEndLat(double endLat) {
+        this.endLat = endLat;
+    }
+
+    public double getEndLong() {
+        return endLong;
+    }
+
+    public void setEndLong(double endLong) {
+        this.endLong = endLong;
     }
 
     public String getCreationLocalDateTime() {

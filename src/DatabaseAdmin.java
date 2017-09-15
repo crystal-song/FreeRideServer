@@ -1,7 +1,12 @@
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.auth.FirebaseCredentials;
-import com.google.firebase.database.*;
+import com.google.firebase.database.ChildEventListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 import com.google.gson.Gson;
 
 import java.io.FileInputStream;
@@ -58,9 +63,9 @@ public class DatabaseAdmin {
                 String state = String.valueOf(dataSnapshot.child("state").getValue());
                 String treatment = dataSnapshot.getRef().getParent().getKey();
                 if (state.equalsIgnoreCase("new")) {
-                    //TODO only for newly created tasks?
-                    //restarting server resends all tasks
-                    //Main.sendTaskDataToAll(jsonTaskString, taskId);
+                    //TODO only for newly created tasks, not on server restart
+                    Main.sendTaskDataToAll(jsonTaskString, taskId);
+                    Main.getMessagesForTask(taskId);
                 }
                 //to remove task from db:
                 //dataSnapshot.getRef().removeValue();
@@ -85,25 +90,23 @@ public class DatabaseAdmin {
      * @return taskId of newly added task
      */
     public String addNewRandomTask() {
-        String taskId = addTaskToDatabase(NewTask.generateRandomTask());
-        return taskId;
+        return addTaskToDatabase(NewTask.generateRandomTask());
     }
 
-    public String addTaskToDatabase(Task task) {
+    /**
+     * Adds task object to the database under a unique generated key. This key is created by the
+     * database. This key is then set as the taskId of the object before committing it to the
+     * database.
+     * @param newTask object
+     * @return taskId as String (Used to receive users reply messages for this task)
+     */
+    public String addTaskToDatabase(Task newTask) {
         logger.log(Level.INFO, "Adding task object to DB");
+        //Generates a unique key to store the task under (becomes the taskId)
         DatabaseReference newTaskRef = allTasksRef.push();
-        Task newTask = NewTask.generateRandomTask();
+        String taskId = newTaskRef.getKey();
+        newTask.setTaskId(taskId);
         newTaskRef.setValue(newTask);
-        String taskId = newTaskRef.getKey();
-        return taskId;
-    }
-
-    public String addTaskToDatabase(String jsonTaskString) {
-        //TODO TEST
-        logger.log(Level.INFO, "Adding task object to DB");
-        DatabaseReference newTaskRef = allTasksRef.push();
-        newTaskRef.setValue(jsonTaskString);
-        String taskId = newTaskRef.getKey();
         return taskId;
     }
 
@@ -232,7 +235,7 @@ public class DatabaseAdmin {
                 String state = String.valueOf(dataSnapshot.child("state").getValue());
                 logger.log(Level.INFO, "task taken? user: " + userId);
                 logger.log(Level.INFO, "current task state: " + state);
-                if (!dataSnapshot.hasChild("user") || dataSnapshot.child("user") == null) { //todo check
+                if (!dataSnapshot.hasChild("user") || dataSnapshot.child("user") == null) {
                     makeTaskAvailable(taskId);
                 }
             }

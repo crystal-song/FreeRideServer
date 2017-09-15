@@ -36,7 +36,7 @@ public class Main {
         databaseOperations();
 //        databaseAddAndManageNewTask();
 
-        NewTask.CLI();
+        //NewTask.CLI();
 
 
 
@@ -63,6 +63,11 @@ public class Main {
         databaseAdmin.addNewTaskListener();
     }
 
+    public static void getMessagesForTask(String taskId) {
+        try {Thread.sleep(10000);} catch (InterruptedException e) {e.printStackTrace();}
+        databaseAdmin.getMessagesForTask(taskId);
+    }
+
     public static void databaseAddAndManageNewTask(){
         String taskId = databaseAdmin.addNewRandomTask();
         //DB Listener calls Main.sendTaskDataToAll
@@ -85,7 +90,6 @@ public class Main {
         }
 
     }
-
 
     public static void replyTestMessage() {
         String messageId = FcmServer.getUniqueMessageId();
@@ -137,14 +141,11 @@ public class Main {
     public static void addTaskToDatabase(Task task) {
         databaseAdmin.addTaskToDatabase(task);
     }
+
     public static void addTasksArrayToDatabase(ArrayList<Task> taskArray) {
         for (Task task :taskArray) {
             databaseAdmin.addTaskToDatabase(task);
         }
-    }
-
-    public static void addTaskToDatabase(String jsonTaskString) {
-        databaseAdmin.addTaskToDatabase(jsonTaskString);
     }
 
 }
