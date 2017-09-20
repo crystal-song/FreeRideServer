@@ -10,6 +10,8 @@ import java.util.Map;
 
 public class NewTaskReplyData {
 
+    //TODO implement with database responses
+
     Map<String, Integer> replyData;
 
     public NewTaskReplyData() {

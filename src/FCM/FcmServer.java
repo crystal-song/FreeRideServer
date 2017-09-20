@@ -16,17 +16,16 @@ import org.jivesoftware.smack.roster.Roster;
 import org.jivesoftware.smack.tcp.XMPPTCPConnection;
 import org.jivesoftware.smack.tcp.XMPPTCPConnectionConfiguration;
 import org.jivesoftware.smackx.ping.PingManager;
-
-import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.json.simple.parser.ParseException;
-
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
 
 import javax.net.ssl.SSLSocketFactory;
 import java.io.IOException;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -141,7 +140,7 @@ public class FcmServer implements StanzaListener {
 
     /**
      * Handles incoming messages
-     * This project has stopped using upstream messages.
+     * This project has stopped using upstream messages to communicate with the client
      */
     @SuppressWarnings("unchecked")
     @Override
@@ -155,19 +154,9 @@ public class FcmServer implements StanzaListener {
 
                 String from = jsonMap.get("from").toString();
                 String messageId = jsonMap.get("message_id").toString();
-                Map<String, String> dataPayload = (Map<String, String>) jsonMap.get("data");
 
                 // Send ACK to FCM
                 sendAck(from, messageId);
-
-                String customMessageType = String.valueOf(
-                        ((JSONObject) (jsonMap.getOrDefault("data", ""))).getOrDefault("messageType", ""));
-
-                if (Objects.equals(customMessageType, "reply-test")) {
-                    handleReplyTest(from, messageId, dataPayload);
-                } else if (Objects.equals(customMessageType, "new-task-reply")) {
-                    handleNewTaskReply(from, messageId, dataPayload);
-                }
 
             } else {
                 switch (messageType.toString()) {
@@ -183,32 +172,6 @@ public class FcmServer implements StanzaListener {
         } catch (ParseException e) {
             logger.log(Level.INFO, "Error parsing JSON: " + json, e.getMessage());
         }
-    }
-
-    /**
-     * Server and client sending message back and forth, incrementing a counter.
-     * Used to test connectivity between server and client, see where messaging breaks
-     * and see how long messages take to get sent.
-     * The client end sets a limit to the counter value.
-     * @param from id of sender of upstream message
-     * @param messageId of upstream message
-     * @param dataPayload of upstream message
-     */
-    private void handleReplyTest(String from, String messageId, Map<String, String> dataPayload) {
-
-        String count = dataPayload.getOrDefault("count", "-1");
-        int countVal = Integer.parseInt(count) + 1;
-
-        // Send a reply downstream message to a device
-        String message = new MessageBuilder()
-                .to(from)
-                .messageId(messageId)
-                .addToDataPayload("messageType", "reply-test")
-                .addToDataPayload("count", String.valueOf(countVal))
-                .build();
-
-        sendMessage(message);
-        logger.log(Level.INFO, "Sending reply.");
     }
 
     //Parameter String toId specifies who the message is sent to, can be a topics path or client device ID
@@ -235,20 +198,6 @@ public class FcmServer implements StanzaListener {
     }
 
     /**
-     * DEPRECATED - Not used anymore because of unreliable upstream messaging (from client)
-     * Will be useful again if upstream messaging becomes reliable
-     * @param from id of sender of upstream message
-     * @param messageId of upstream message
-     * @param dataPayload of upstream message
-     */
-    private void handleNewTaskReply(String from, String messageId, Map<String, String> dataPayload) {
-        //Store response
-        Integer locationScore = Integer.valueOf(dataPayload.get("locationScore"));
-        newTaskReplyData.addData(from, locationScore);
-    }
-
-    /**
-     * Not used anymore
      * @param jsonTaskString task data
      * @param title of task
      */
@@ -257,49 +206,27 @@ public class FcmServer implements StanzaListener {
     }
 
     /**
-     * Not used anymore
      * @param amount of users to send notification to
      * @param jsonTaskString task data
      * @param title of task
      */
     public void sendTaskNotificationToTopUsers(int amount, String jsonTaskString, String title) {
         List<String> clientList = newTaskReplyData.getTopUsers(amount);
-        sendTaskNotification(clientList, jsonTaskString, title);
+        sendTaskNotification(clientList, jsonTaskString);
 
         logger.log(Level.INFO, "Sent task to " + clientList.size() + " clients.");
-    }
-
-    /**
-     * Sends taskId to client device. Client device will have to retrieve task data
-     * from the database and display a notification for the user.
-     * @param taskId of task
-     * @param toId users token (or topic)
-     */
-    public void sendTaskIdForNotification(String taskId, String toId) {
-        String message = new MessageBuilder()
-                .to(toId)
-                .messageId(getUniqueMessageId())
-                .addToDataPayload("messageType", "task-for-notification")
-                .addToDataPayload("taskId", taskId)
-                .timeToLive(60)
-                .build();
-
-        sendMessage(message);
     }
 
     /**
      * Sends task data and notification payload to client, to display a notification for the user.
      * @param userIds user tokens or topic
      * @param jsonTaskString task data
-     * @param title of task
      */
-    public void sendTaskNotification(List<String> userIds, String jsonTaskString, String title) {
-        // Send a reply downstream message to a device
+    public void sendTaskNotification(List<String> userIds, String jsonTaskString) {
 
         MessageBuilder messageBuilder = new MessageBuilder()
                 .addToDataPayload("messageType", "new-task-notification")
                 .addToDataPayload("taskData", jsonTaskString)
-                .addToNotificationPayload("title", title)
                 .addToNotificationPayload("body", "New Task")
                 .prepare();
 

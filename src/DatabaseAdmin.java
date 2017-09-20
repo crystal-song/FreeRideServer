@@ -63,11 +63,9 @@ public class DatabaseAdmin {
                 String treatment = dataSnapshot.getRef().getParent().getKey();
                 if (state.equalsIgnoreCase("new")) {
                     //TODO only for newly created tasks, not on server restart
-                    //Main.sendTaskDataToAll(jsonTaskString, taskId);
+                    Main.sendTaskData(jsonTaskString, taskId, VALUES.TOPICS_TEST);
                     Main.getMessagesForTask(taskId);
                 }
-                //to remove task from db:
-                //dataSnapshot.getRef().removeValue();
             }
 
             @Override
@@ -177,11 +175,9 @@ public class DatabaseAdmin {
         taskRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
-                Object value = dataSnapshot.getValue();
-                String jsonTaskString = new Gson().toJson(value);
-                String title = String.valueOf(dataSnapshot.child("title").getValue());
+                String jsonTaskString = dataSnapshot.getValue(String.class);
                 logger.log(Level.INFO, "Json task details for notification: " + jsonTaskString);
-                Main.sendTaskNotification(jsonTaskString, title, userIds);
+                Main.sendTaskNotification(jsonTaskString, userIds);
             }
 
             @Override

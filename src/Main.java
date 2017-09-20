@@ -42,8 +42,8 @@ public class Main {
         fcmServer.sendTaskData(jsonStringTask, taskId, toId);
     }
 
-    public static void sendTaskNotification(String jsonTaskString, String title, ArrayList<String> userIds){
-        fcmServer.sendTaskNotification(userIds, jsonTaskString, title);
+    public static void sendTaskNotification(String jsonTaskString, ArrayList<String> userIds){
+        fcmServer.sendTaskNotification(userIds, jsonTaskString);
     }
 
     public static void getMessagesForTask(String taskId) {
