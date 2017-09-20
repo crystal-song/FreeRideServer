@@ -1,5 +1,4 @@
 import FCM.FcmServer;
-import com.google.gson.Gson;
 import org.jivesoftware.smack.SmackException;
 import org.jivesoftware.smack.XMPPException;
 
@@ -8,7 +7,7 @@ import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 
 /**
- * This class acts as the CONTROLLER / Middle-man of other classes.
+ * This class acts as the controller class between the messaging and database.
  */
 public class Main {
     private static FcmServer fcmServer;
@@ -24,8 +23,7 @@ public class Main {
             e.printStackTrace();
         }
 
-        databaseOperations();
-
+        databaseSetup();
 
         try {
             CountDownLatch latch = new CountDownLatch(1);
@@ -35,61 +33,21 @@ public class Main {
         }
     }
 
-    public static void sendTaskDataToAll(String jsonStringTask, String taskId) {
-        fcmServer.sendTaskData(jsonStringTask, taskId, VALUES.TOPICS_TEST);
-    }
-
-    public static void sendTaskNotification(String taskId, String jsonTaskString, String title, ArrayList<String> userIds){
-        for (String userId : userIds) {
-            fcmServer.sendTaskNotification(taskId ,userId, jsonTaskString, title);
-        }
-    }
-
-    public static void databaseOperations() {
+    public static void databaseSetup() {
         databaseAdmin = new DatabaseAdmin();
         databaseAdmin.addNewTaskListener();
+    }
+
+    public static void sendTaskData(String jsonStringTask, String taskId, String toId) {
+        fcmServer.sendTaskData(jsonStringTask, taskId, toId);
+    }
+
+    public static void sendTaskNotification(String jsonTaskString, String title, ArrayList<String> userIds){
+        fcmServer.sendTaskNotification(userIds, jsonTaskString, title);
     }
 
     public static void getMessagesForTask(String taskId) {
         try {Thread.sleep(10000);} catch (InterruptedException e) {e.printStackTrace();}
         databaseAdmin.getMessagesForTask(taskId);
     }
-
-    public static void sendTaskToAll(Task task, String taskId) {
-
-        String jsonStringTask = new Gson().toJson(task);
-
-
-        /*
-        Problem with upstream messaging: taking way too long.
-        Haven't been able to find a solution yet, might find one later.
-        Going to send task notification to all users instead.
-
-
-        fcmServer.sendTaskDataToAll(jsonStringTask, taskId, VALUES.TOPICS_TEST);
-
-
-        //wait for all replies to come in and be handled
-        try {Thread.sleep(1000);} catch (InterruptedException e) { e.printStackTrace(); }
-
-
-        //Opens connection to clients to receive their outgoing messages (get replies)
-        fcmServer.sendPingHack(VALUES.TOPICS_TEST);
-
-
-        //wait for all replies to come in and be handled
-        try {Thread.sleep(1000);} catch (InterruptedException e) { e.printStackTrace(); }
-
-        fcmServer.sendTaskNotification(jsonStringTask, task.getTitle());
-        */
-
-
-        //fcmServer.sendTaskNotification(VALUES.TOPICS_TEST, jsonStringTask, task.getTitle());
-
-
-        //try {Thread.sleep(10000);} catch (InterruptedException e) { e.printStackTrace(); }
-    }
 }
-
-//JVM argument for 'customised' one line log messages:
-//-Djava.util.logging.SimpleFormatter.format="%1$tH:%1$tM:%1$tS  %5$s%6$s [in %2$s]%n"

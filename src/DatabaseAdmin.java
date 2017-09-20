@@ -63,7 +63,7 @@ public class DatabaseAdmin {
                 String treatment = dataSnapshot.getRef().getParent().getKey();
                 if (state.equalsIgnoreCase("new")) {
                     //TODO only for newly created tasks, not on server restart
-                    Main.sendTaskDataToAll(jsonTaskString, taskId);
+                    //Main.sendTaskDataToAll(jsonTaskString, taskId);
                     Main.getMessagesForTask(taskId);
                 }
                 //to remove task from db:
@@ -181,7 +181,7 @@ public class DatabaseAdmin {
                 String jsonTaskString = new Gson().toJson(value);
                 String title = String.valueOf(dataSnapshot.child("title").getValue());
                 logger.log(Level.INFO, "Json task details for notification: " + jsonTaskString);
-                Main.sendTaskNotification(taskId, jsonTaskString, title, userIds);
+                Main.sendTaskNotification(jsonTaskString, title, userIds);
             }
 
             @Override
