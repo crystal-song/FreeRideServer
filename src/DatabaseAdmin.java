@@ -19,9 +19,11 @@ import java.util.logging.Logger;
 
 public class DatabaseAdmin {
     private static final Logger logger = Logger.getLogger(DatabaseAdmin.class.getName());
-    final FirebaseDatabase databaseInstance;
-    DatabaseReference allMessagesRef;
-    DatabaseReference allTasksRef;
+    private final FirebaseDatabase databaseInstance;
+    private DatabaseReference allMessagesRef;
+    private DatabaseReference treatmentAll_TasksRef;
+    private DatabaseReference allTasksPath;
+    boolean initiated;
 
     /**
      * Authenticate Server - Using Database Admin API
@@ -42,27 +44,38 @@ public class DatabaseAdmin {
             FirebaseApp.initializeApp(options);
         } catch (IOException e) {e.printStackTrace();}
         databaseInstance = FirebaseDatabase.getInstance();
-        allMessagesRef = databaseInstance.getReference(VALUES.DB_MESSAGES_PATH);
-        allTasksRef = databaseInstance.getReference(VALUES.TASKS_PATH_DB);
+        allMessagesRef = databaseInstance.getReference("userTaskInfo");
+        allTasksPath = databaseInstance.getReference("tasks");
+        treatmentAll_TasksRef = allTasksPath.child("treatmentAll");
+        initiated = false;
     }
 
     /**
-     * Database listener for new child (task) add.
-     * If new task has a state of 'NEW', task data message is sent to all client devices
+     * Database listener for all tasks added to database.
+     * All 'new' tasks are sent to users as notifications. *
+     * The ChildEventListener received a callback for every
+     * child in the database when created (this is ignored).
+     * Then the ValueEventListener receives a callback (this
+     * sets initialise to true). The ChildEventListener now
+     * receives a callback for every new child added to the database.
      */
     public void addNewTaskListener() {
         logger.log(Level.INFO, "Adding new task listener");
-        allTasksRef.addChildEventListener(new ChildEventListener() {
+
+        treatmentAll_TasksRef.addChildEventListener(new ChildEventListener() {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String prevChildKey) {
+                if (!initiated) {
+                    //This ignored the tasks that are in the database already when the server is run
+                    return;
+                }
                 String taskId = dataSnapshot.getKey();
                 logger.log(Level.INFO, "New Task Added To DB, taskId: " + taskId);
                 Object value = dataSnapshot.getValue();
                 String jsonTaskString = new Gson().toJson(value);
                 String state = String.valueOf(dataSnapshot.child("state").getValue());
                 String treatment = dataSnapshot.getRef().getParent().getKey();
-                if (state.equalsIgnoreCase("new")) {
-                    //TODO only for newly created tasks, not on server restart
+                if (state.equalsIgnoreCase("notify") || state.equalsIgnoreCase("notifyavailable")) {
                     Main.sendTaskData(jsonTaskString, taskId, VALUES.TOPICS_TEST);
                     Main.getMessagesForTask(taskId);
                 }
@@ -74,6 +87,20 @@ public class DatabaseAdmin {
             public void onChildRemoved(DataSnapshot dataSnapshot) {}
             @Override
             public void onChildMoved(DataSnapshot dataSnapshot, String s) {}
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+                logger.log(Level.INFO, "DB Error: " + databaseError);
+            }
+        });
+
+        // Callback received only once all initial children have been read.
+        treatmentAll_TasksRef.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                initiated = true;
+                logger.log(Level.INFO, "Database has " + dataSnapshot.getChildrenCount() + " tasks on server start.");
+            }
 
             @Override
             public void onCancelled(DatabaseError databaseError) {
@@ -171,7 +198,7 @@ public class DatabaseAdmin {
     private void sendTaskNotificationToUsers(String taskId, ArrayList<String> userIds) {
         logger.log(Level.INFO, "Getting task details from DB for notification");
         //Read task details from database
-        DatabaseReference taskRef = allTasksRef.child(taskId);
+        DatabaseReference taskRef = treatmentAll_TasksRef.child(taskId);
         taskRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
@@ -195,7 +222,7 @@ public class DatabaseAdmin {
     public void makeTaskAvailableIfNotTaken(String taskId) {
         logger.log(Level.INFO, "Checking if task taken: " + taskId);
         //Read task info from database
-        DatabaseReference taskRef = allTasksRef.child(taskId);
+        DatabaseReference taskRef = treatmentAll_TasksRef.child(taskId);
         taskRef.addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
@@ -223,7 +250,7 @@ public class DatabaseAdmin {
      */
     private void makeTaskAvailable(String taskId) {
         logger.log(Level.INFO, "Making task available: " + taskId);
-        DatabaseReference taskRef = allTasksRef.child(taskId);
+        DatabaseReference taskRef = treatmentAll_TasksRef.child(taskId);
         taskRef.child("state").setValue("available");
         removeUserTaskInfoMessages(taskId);
     }
